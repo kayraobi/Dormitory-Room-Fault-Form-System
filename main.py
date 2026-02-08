@@ -1,9 +1,19 @@
 from dotenv import load_dotenv
-load_dotenv()  # <-- MUTLAKA İLK SATIRLARDA
+load_dotenv()
 
 from forms_service import FormsService
+from ui import ResponsesTableUI
 
-forms = FormsService()
-responses = forms.get_responses()
 
-print(responses)
+def main():
+    forms = FormsService()
+
+    # Google Forms'tan response'ları çek ve JSON'a yaz
+    forms.get_responses()
+
+    # UI'yi aç (JSON'dan okur)
+    ResponsesTableUI(json_path="responses.json")
+
+
+if __name__ == "__main__":
+    main()
