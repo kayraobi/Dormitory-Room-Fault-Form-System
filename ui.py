@@ -2,8 +2,7 @@ import json
 import tkinter as tk
 from tkinter import ttk
 
-
-# 🔹 HARD-CODED QUESTION ID → TEXT MAP
+# 🔹 QUESTION ID → QUESTION TEXT MAP
 QUESTION_TEXT_MAP = {
     "45c81dca": "den",
     "7bfd83fb": "Please provide a brief description of why you are taking this test:",
@@ -25,15 +24,17 @@ QUESTION_TEXT_MAP = {
 class ResponsesTableUI:
     def __init__(self, json_path):
         self.json_path = json_path
+
         self.root = tk.Tk()
-        self.root.title("Google Forms Responses")
-        self.root.geometry("800x500")
+        self.root.title("Translated Responses")
+        self.root.geometry("900x550")
 
         self._build_table()
         self._load_data()
 
         self.root.mainloop()
 
+    # ---------------- UI ----------------
     def _build_table(self):
         columns = ("question", "answer")
 
@@ -46,48 +47,50 @@ class ResponsesTableUI:
         self.tree.heading("question", text="Question")
         self.tree.heading("answer", text="Answer")
 
-        self.tree.column("question", width=350)
-        self.tree.column("answer", width=420)
+        self.tree.column("question", width=420, anchor="w")
+        self.tree.column("answer", width=460, anchor="w")
 
         scrollbar = ttk.Scrollbar(
             self.root,
             orient="vertical",
             command=self.tree.yview
         )
-        self.tree.configure(yscroll=scrollbar.set)
+        self.tree.configure(yscrollcommand=scrollbar.set)
 
         self.tree.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
+    # ---------------- DATA ----------------
     def _load_data(self):
         try:
             with open(self.json_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-        except FileNotFoundError:
+        except Exception as e:
+            print("JSON okunamadı:", e)
             return
 
-        responses = data.get("last_fetched", [])
+        # tabloyu temizle
+        self.tree.delete(*self.tree.get_children())
 
-        for response in responses:
-            answers = response.get("answers", {})
+        for response_key, answers in data.items():
+            # 🔹 RESPONSE HEADER
+            self.tree.insert(
+                "",
+                "end",
+                values=(f"--- {response_key.upper()} ---", "")
+            )
 
-            for question_id, answer_block in answers.items():
-                value = self._extract_answer(answer_block)
+            for question_id, answer_list in answers.items():
                 question_text = QUESTION_TEXT_MAP.get(question_id, question_id)
+                answer_text = ", ".join(answer_list)
 
                 self.tree.insert(
                     "",
                     "end",
-                    values=(question_text, value)
+                    values=(question_text, answer_text)
                 )
 
-    def _extract_answer(self, answer_block):
-        if "textAnswers" in answer_block:
-            answers = answer_block["textAnswers"].get("answers", [])
-            return ", ".join(a.get("value", "") for a in answers)
 
-        if "choiceAnswers" in answer_block:
-            answers = answer_block["choiceAnswers"].get("answers", [])
-            return ", ".join(a.get("value", "") for a in answers)
-
-        return "—"
+# ---------------- RUN ----------------
+if __name__ == "__main__":
+    ResponsesTableUI("translated_answers.json")
